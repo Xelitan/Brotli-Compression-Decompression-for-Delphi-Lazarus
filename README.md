@@ -25,3 +25,12 @@ end;
 ## This unit uses Brotli library by Google:
 
 Brotli is open-sourced under the MIT License.
+
+## Linux (Debian, Ubuntu, Mint)
+
+1) apt install apt-file libbrotli-dev
+2) apt-file search libbrotli.so
+It will list you how your libbrotli.so files are named *exactly* and where they are
+3) Open BrotliLib.pas and edit "const BROTLI_LIB"
+4) Change the value of that const. Enter filename (excluding path) found in step 2
+5) Compile and run
