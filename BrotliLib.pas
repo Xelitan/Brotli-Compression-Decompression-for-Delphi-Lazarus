@@ -4,7 +4,7 @@ unit BrotliLib;
 //                                                                            //
 // Description:	BROTLI compressor and decompressor                            //
 // Version:	0.1                                                           //
-// Date:	13-FEB-2025                                                   //
+// Date:	16-FEB-2025                                                   //
 // License:     MIT                                                           //
 // Target:	Win64, Free Pascal, Delphi                                    //
 // Copyright:	(c) 2025 Xelitan.com.                                         //
@@ -17,8 +17,8 @@ interface
 uses
   Classes, SysUtils, Dialogs;
 
-var
-  BROTLI_COMPRESSION: Integer = 11;
+const BROTLI_LIB = 'brotlienc.dll';
+      BROTLI_LIB2 = 'brotlidec.dll';
 
 type
   TBrotliQuality = 0..11;
@@ -26,30 +26,30 @@ type
 
   TBrotliEncoderMode = (BROTLI_MODE_GENERIC, BROTLI_MODE_TEXT, BROTLI_MODE_FONT);
 
-  function BrotliEncoderCompress(quality: Integer; window: Integer; mode: TBrotliEncoderMode; input_size: Cardinal; input_buffer: PByte; encoded_size: PCardinal;encoded_buffer: PByte): LongBool; cdecl; external 'brotlienc.dll';
-  function BrotliEncoderMaxCompressedSize(input_size: Cardinal): Cardinal; cdecl; external 'brotlienc.dll';
-  function BrotliDecoderDecompress(encoded_size: Cardinal; encoded_buffer: PByte; decoded_size: PCardinal; decoded_buffer: PByte): LongBool; cdecl; external 'brotlidec.dll';
+  function BrotliEncoderCompress(quality: Integer; window: Integer; mode: TBrotliEncoderMode; input_size: Cardinal; input_buffer: PByte; encoded_size: PCardinal;encoded_buffer: PByte): LongBool; cdecl; external BROTLI_LIB;
+  function BrotliEncoderMaxCompressedSize(input_size: Cardinal): Cardinal; cdecl; external BROTLI_LIB;
+  function BrotliDecoderDecompress(encoded_size: Cardinal; encoded_buffer: PByte; decoded_size: PCardinal; decoded_buffer: PByte): LongBool; cdecl; external BROTLI_LIB2;
 
   //Functions
-  function Brotli(Data: PByte; DataLen: Integer; var OutData: TBytes): Boolean; overload;
+  function Brotli(Data: PByte; DataLen: Integer; var OutData: TBytes; Compression: Integer = 11): Boolean; overload;
   function UnBrotli(Data: PByte; DataLen: Integer; var OutData: TBytes; OutDataLen: Integer): Boolean; overload;
 
-  function Brotli(InStr, OutStr: TStream): Boolean; overload;
+  function Brotli(InStr, OutStr: TStream; Compression: Integer = 11): Boolean; overload;
   function UnBrotli(InStr, OutStr: TStream; OutDataLen: Integer): Boolean; overload;
 
-  function Brotli(Str: String): String; overload;
+  function Brotli(Str: String; Compression: Integer = 11): String; overload;
   function UnBrotli(Str: String; OutDataLen: Integer): String; overload;
 
 implementation
 
-function Brotli(Data: PByte; DataLen: Integer; var OutData: TBytes): Boolean;
+function Brotli(Data: PByte; DataLen: Integer; var OutData: TBytes; Compression: Integer): Boolean;
 var Res: LongBool;
     OutLen: Cardinal;
 begin
   OutLen := BrotliEncoderMaxCompressedSize(DataLen);
   SetLength(OutData, OutLen);
 
-  Res := BrotliEncoderCompress(BROTLI_COMPRESSION, 22, BROTLI_MODE_GENERIC, DataLen, Data, @Outlen, @OutData[0]);
+  Res := BrotliEncoderCompress(Compression, 22, BROTLI_MODE_GENERIC, DataLen, Data, @Outlen, @OutData[0]);
 
   if not Res then Exit(False);
   SetLength(OutData, OutLen);
@@ -82,7 +82,7 @@ begin
   Move(OutData[0], Result[1], OutLen);
 end;
 
-function Brotli(InStr, OutStr: TStream): Boolean;
+function Brotli(InStr, OutStr: TStream; Compression: Integer): Boolean;
 var Buf: array of Byte;
     Size: Integer;
     OutData: TBytes;
@@ -93,7 +93,7 @@ begin
     SetLength(Buf, Size);
     InStr.Read(Buf[0], Size);
 
-    if not Brotli(@Buf[0], Size, OutData) then Exit;
+    if not Brotli(@Buf[0], Size, OutData, Compression) then Exit;
 
     OutStr.Write(OutData[0], Length(OutData));
     Result := True;
@@ -120,12 +120,12 @@ begin
   end;
 end;
 
-function Brotli(Str: String): String;
+function Brotli(Str: String; Compression: Integer): String;
 var Res: Boolean;
     OutLen: Integer;
     OutData: TBytes;
 begin
-  Res := Brotli(@Str[1], Length(Str), OutData);
+  Res := Brotli(@Str[1], Length(Str), OutData, Compression);
   if not Res then Exit('');
 
   OutLen := Length(OutData);
